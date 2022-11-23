@@ -11,7 +11,7 @@ CC:= gcc
 
 CFLAGS := -Wall -Wextra -Werror -pipe -MMD
 
-deps:=$(patsubst %.o, %.d, $(obs))
+deps:=$(patsubst %.o, %.d, $(objs))
 -include $(deps)
 
 %.a: $(objs)
