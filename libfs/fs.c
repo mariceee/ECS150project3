@@ -79,7 +79,7 @@ uint16_t FAT[FS_MAX_BLOCK];
 
 struct fd {
 		uint32_t fileSize;  //打开标志,初始值0，打开以后为了表示打开标志变为: 100+fd
-		int16_t indexFirstDataBlock;
+		uint16_t indexFirstDataBlock;
 		int32_t offset;
 	};
 
@@ -137,18 +137,32 @@ int fs_mount(const char *diskname)
 	if (block_read(superblock.amountFAT+1, directory)){   // virtual disk file @diskname cannot be opened or if no valid * file system can be located. 
 		perror("fs_mount:read error\n");
 		return -1;
-		}	
+	}	
 
 	mount=0;
 	return 0;
 }
+
+
+/**
+ * fs_umount - Unmount file system
+ *
+ * Unmount the currently mounted file system and close the underlying virtual
+ * disk file.
+ *
+ * Return: -1 if no FS is currently mounted, or if the virtual disk cannot be
+ * closed, or if there are still open file descriptors. 0 otherwise.
+ */
 
 int fs_umount(void)
 {
 	/**
 	1-2  fs_umount() makes sure that the virtual disk is properly closed and that all the internal data structures of the FS layer are properly cleaned.
 	*/
-
+	if(mount==-1){
+		perror("No disk is mounted\n");
+		return -1;
+	}
 	/* if there are still open file descriptors.*/
 	for (int i=0; i<FS_OPEN_MAX_COUNT;i++){
 		if (FD[i].indexFirstDataBlock!=0){  
@@ -208,8 +222,23 @@ make sure that the output corresponds exactly to the reference program.
 }
 
 
+
 /* ========   TODO: Phase 2  ===============*/
 
+
+/**
+ * fs_create - Create a new file
+ * @filename: File name
+ *
+ * Create a new and empty file named @filename in the root directory of the
+ * mounted file system. String @filename must be NULL-terminated and its total
+ * length cannot exceed %FS_FILENAME_LEN characters (including the NULL
+ * character).
+ *
+ * Return: -1 if no FS is currently mounted, or if @filename is invalid, or if a
+ * file named @filename already exists, or if string @filename is too long, or
+ * if the root directory already contains %FS_FILE_MAX_COUNT files. 0 otherwise.
+ */
 
 int fs_create(const char *filename)
 {
@@ -226,36 +255,52 @@ int fs_create(const char *filename)
 
 	/**   file already exist! */
 	for (int i=0; i <FS_FILE_MAX_COUNT; i++)
-		{
-			if (strcmp(filename,directory[i].filename)==0 ){  
-				perror("fs_create: file already exist!\n");
-				return -1;
-				}
+	{
+		if (strcmp(filename,directory[i].filename)==0 ){  
+			perror("fs_create: file already exist!\n");
+			return -1;
 		}
+	}
 
 	/**  Find an find an empty entry  */
-	for (int i=0; i <FS_FILE_MAX_COUNT; i++)
-		{
-			if (directory[i].filename[0]=='\0')
-			{  
-				strcpy(directory[i].filename,filename);
-				directory[i].fileSize =0;
-				directory[i].indexFirstDataBlock= FAT_EOC;
-				return 0;
-			}
-			
-			if (i>= FS_FILE_MAX_COUNT){  
-				perror("fs_create: directory full! (max 128 file)\n");
-				return -1;
-			}
-		}
-	return 0;
+	for (uint32_t i=0; i <FS_FILE_MAX_COUNT; i++)
+	{
+		if (directory[i].filename[0]=='\0')
+		{  
+			strcpy(directory[i].filename,filename);
+			directory[i].fileSize =0;
+			directory[i].indexFirstDataBlock= FAT_EOC;
+			return 0;
+		}		
+	}
+	perror("fs_create: directory full! (max 128 file)\n");
+	return -1;
+		
 }
 
-
+/**
+ * fs_delete - Delete a file
+ * @filename: File name
+ *
+ * Delete the file named @filename from the root directory of the mounted file
+ * system.
+ *
+ * Return: -1 if no FS is currently mounted, or if @filename is invalid, or if
+ * Return: -1 if @filename is invalid, if there is no file named @filename to
+ * delete, or if file @filename is currently open. 0 otherwise.
+ */
 
 int fs_delete(const char *filename)
 {
+	/*no FS mounted*/
+	if(mount==-1)return -1;
+
+	/** if @filename is invalid */ 
+	if (!filename) {
+		fprintf(stderr, "invalid file diskname: %s", filename);
+		return -1;
+	}
+
 	if (strlen(filename) >= FS_FILENAME_LEN || strlen(filename)==0 ){  
 		perror("fs_create: file name too long! (1~16 character)\n");
 		return -1;
@@ -269,27 +314,24 @@ int fs_delete(const char *filename)
 				if (FAT[directory[i].indexFirstDataBlock]== FAT_EOC){
 					FAT[directory[i].indexFirstDataBlock]=0;
 					break;
-					}
+				}
 				else {
 					int indexOldBlock= indexCurrentBlock;
 					indexCurrentBlock= FAT[indexCurrentBlock];
 					FAT[indexOldBlock]=0;
-					}
 				}
+			}
 			/** the file’s entry must be emptied */			
 			for (int j=0; j <FS_FILENAME_LEN; j++) {
-				directory[i].filename[j]= 0;
-				directory[i].fileSize = 0;
-				directory[i].indexFirstDataBlock= 0;			
+				directory[i].filename[j]= '\0';
 			}
-		}
-
-		if (i>= FS_FILE_MAX_COUNT){  
-			perror("fs_create: no such file! \n");
-			return -1;
+			directory[i].fileSize = 0;
+			directory[i].indexFirstDataBlock= 0;	
+			return 0;	
 		}
 	}
-	return 0;
+	perror("fs_create: no such file! \n");
+	return -1;
 }
 
 
@@ -315,16 +357,31 @@ int fs_ls(void)
 	return 0;
 }
 
-
-
-/**========================== phase  3=============================================-*/
+/**========================== phase  3=============================================*/
+/**
+ * fs_open - Open a file
+ * @filename: File name
+ *
+ * Open file named @filename for reading and writing, and return the
+ * corresponding file descriptor. The file descriptor is a non-negative integer
+ * that is used subsequently to access the contents of the file. The file offset
+ * of the file descriptor is set to 0 initially (beginning of the file). If the
+ * same file is opened multiple files, fs_open() must return distinct file
+ * descriptors. A maximum of %FS_OPEN_MAX_COUNT files can be open
+ * simultaneously.
+ *
+ * Return: -1 if no FS is currently mounted, or if @filename is invalid, or if
+ * there is no file named @filename to open, or if there are already
+ * %FS_OPEN_MAX_COUNT files currently open. Otherwise, return the file
+ * descriptor.
+ */
 int fs_open(const char *filename)
 {
 	int positionDir=0; 	
 	int positionFD=0; 	
 
 	/** Return: -1 if no FS is currently mounted,  */
-
+	if(mount==-1)return -1;
 	/** if @filename is invalid */ 
 	if (!filename) {
 		perror("invalid file diskname");
@@ -333,23 +390,24 @@ int fs_open(const char *filename)
 	
 	/** if string @filename is too long, */
 	if (strlen(filename) >= FS_FILENAME_LEN ){  
-			perror("fs_open: file name too long! (1~16 character)\n");
-			return -1;
-			}	
+		perror("fs_open: file name too long! (1~16 character)\n");
+		return -1;
+	}	
 
 	/*  search directory */
-	for (int positionDir=0; positionDir <FS_FILE_MAX_COUNT; positionDir++){
-		if (strcmp(filename,directory[positionDir].filename)==0) 
+	for (; positionDir <FS_FILE_MAX_COUNT; positionDir++){
+		if (strcmp(filename,directory[positionDir].filename)==0){
 			break;
+		}
 	}
 	/**if there is no file named @filename to open*/
 	if (positionDir>= FS_FILE_MAX_COUNT){  
-			fprintf(stderr, "fs_open: there is no file named %s to open\n",filename);
-			return -1;
-		}		
+		fprintf(stderr, "fs_open: there is no file named %s to open\n",filename);
+		return -1;
+	}		
 			
 	/** find a empty item from FD array */
-	for (int positionFD=0; positionFD <FS_OPEN_MAX_COUNT; positionFD++) {  
+	for (; positionFD <FS_OPEN_MAX_COUNT; positionFD++) {  
 		if (FD[positionFD].indexFirstDataBlock== 0){
 			FD[positionFD].fileSize =directory[positionDir].fileSize;
 			FD[positionFD].indexFirstDataBlock= directory[positionDir].indexFirstDataBlock;
@@ -368,15 +426,16 @@ int fs_open(const char *filename)
 int fs_close(int fd)
 {
 	/**  Return: -1 if no FS is currently mounted */
+	if(mount==-1)return -1;
 	/** if file descriptor @fd is invalid (out of bounds or not currently open) */ 
-	if (fd >= FS_OPEN_MAX_COUNT || fd <=0){  
-			fprintf(stderr, "fs_close: file Descriptor should between 0~31\n");
-			return -1;
-			}
+	if (fd >= FS_OPEN_MAX_COUNT || fd <0){  
+		fprintf(stderr, "fs_close: file Descriptor should between 0~31\n");
+		return -1;
+	}
 	if (FD[fd].indexFirstDataBlock == 0 ){  
-			fprintf(stderr, "fs_stat: fd NOT opened\n" );
-			return -1;
-			}
+		fprintf(stderr, "fs_stat: fd NOT opened\n" );
+		return -1;
+	}
 	/** * Close file descriptor @fd. */		
 	FD[fd].fileSize=0;
 	FD[fd].indexFirstDataBlock= 0;
@@ -385,7 +444,16 @@ int fs_close(int fd)
 	return 0;
 }
 
-
+/**
+ * fs_stat - Get file status
+ * @fd: File descriptor
+ *
+ * Get the current size of the file pointed by file descriptor @fd.
+ *
+ * Return: -1 if no FS is currently mounted, of if file descriptor @fd is
+ * invalid (out of bounds or not currently open). Otherwise return the current
+ * size of file.
+ */
 
 int fs_stat(int fd)
 {
@@ -395,21 +463,33 @@ int fs_stat(int fd)
 	if (fd >= FS_OPEN_MAX_COUNT || fd <=0){  
 		fprintf(stderr, "fs_stat: file descriptor %d is invalid:out of bounds \n",fd);
 		return -1;
-		}
+	}
 	if (FD[fd].indexFirstDataBlock == 0 ){  
 		fprintf(stderr, "fs_stat: %d is invalid ：not currently open)", fd );
 		return -1;
-		}
+	}
 
 	return FD[fd].fileSize;
 }
 
-
+/**
+ * fs_lseek - Set file offset
+ * @fd: File descriptor
+ * @offset: File offset
+ *
+ * Set the file offset (used for read and write operations) associated with file
+ * descriptor @fd to the argument @offset. To append to a file, one can call
+ * fs_lseek(fd, fs_stat(fd));
+ *
+ * Return: -1 if no FS is currently mounted, or if file descriptor @fd is
+ * invalid (i.e., out of bounds, or not currently open), or if @offset is larger
+ * than the current file size. 0 otherwise.
+ */
 
 int fs_lseek(int fd, size_t offset)
 {
 	/** Return: -1 if no FS is currently mounted, */
-	
+	if(mount==-1)return -1;
 	/** if file descriptor @fd is invalid (i.e., out of bounds, or not currently open)*/
 	if (fd >= FS_OPEN_MAX_COUNT || fd <=0){  
 		fprintf(stderr, "fs_lseek:file descriptor %d is invalid:out of bounds\n", fd);
