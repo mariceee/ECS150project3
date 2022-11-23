@@ -230,7 +230,8 @@ int fs_umount(void)
 
 int fs_info(void)
 {
-	/*if(mount==-1){
+	/*
+	if(mount==-1){
 		perror("No filesystem is mounted\n");
 		return -1;
 	}
