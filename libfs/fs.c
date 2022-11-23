@@ -230,10 +230,11 @@ int fs_umount(void)
 
 int fs_info(void)
 {
-	if(mount==-1){
+	/*if(mount==-1){
 		perror("No filesystem is mounted\n");
 		return -1;
 	}
+	*/
 	printf("1,8d0\n");
 	printf("<FS Info:\n");
 	printf("total_blk_count=%d\n", superblock.amountVD);
