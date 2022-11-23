@@ -11,17 +11,21 @@ CC:= gcc
 
 CFLAGS := -Wall -Wextra -Werror -pipe -MMD
 
+ifneq ($(V), 1)
+Q= @
+endif
+
 deps:=$(patsubst %.o, %.d, $(objs))
 -include $(deps)
 
 %.a: $(objs)
-	@ar rcs $@ $^
+	$(Q)ar rcs $@ $^
 
 %.o: %.c
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	@rm -rvf $(targets) $(objs) $(deps) *.d
+	$(Q)rm -rvf $(targets) $(objs) $(deps) *.d
 
 .PHONY: clean
 .PRECIOUS: $(objs)
