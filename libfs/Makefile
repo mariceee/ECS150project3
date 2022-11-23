@@ -1,6 +1,7 @@
 # Target library
 lib := libfs.a
 
+MAKEFLAGS+=-rR
 all: $(lib)
 
 ## TODO: Phase 1
