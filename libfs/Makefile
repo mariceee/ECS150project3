@@ -27,7 +27,7 @@ $(lib): $(objs)
 
 clean:
 	@echo "CC $@"
-	$(Q)rm -rvf $(libfs) *.a *.o *.d
+	$(Q)rm -rvf *.a *.o *.d
 
 .PHONY: clean
 .PRECIOUS: $(objs)
