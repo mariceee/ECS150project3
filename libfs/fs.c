@@ -436,11 +436,25 @@ int fs_lseek(int fd, size_t offset)
 
 int fs_write(int fd, void *buf, size_t count)
 {
-char buffer[BLOCK_SIZE*FS_MAX_BLOCK];
-int indexCurrentBlock =FD[fd].indexFirstDataBlock;
-	
-/** 1 ==========  no need expand =====================*/
-	if (count <= FD[fd].fileSize - FD[fd].offset ){ 
+	char buffer[BLOCK_SIZE*FS_MAX_BLOCK];
+	int indexCurrentBlock =FD[fd].indexFirstDataBlock;
+	//
+	if (fd >= FS_OPEN_MAX_COUNT || fd <=0){  
+		fprintf(stderr,"fs_read: file descriptor %d is invalid:out of bounds \n",fd);
+		return -1;
+		}
+	if (FD[fd].indexFirstDataBlock == 0 ){  
+		fprintf(stderr, "fs_read: %d is invalid ：not currently open)", fd );
+		return -1;
+		}
+	/** if @buf is NULL*/
+	if ( buf == NULL ){  
+		perror("fs_read: buf is NULL)" );
+		return -1;
+	}
+	//
+	/** 1 ==========  no need expand =====================*/
+	if (count/BLOCK_SIZE <= (FD[fd].fileSize - FD[fd].offset)/BLOCK_SIZE ){ 
 		/** read total file blocks into buffer  */ 
 		for (uint32_t i=0 ;i< (FD[fd].fileSize/BLOCK_SIZE+1); i++ )	{
 			if (block_read(indexCurrentBlock, &buffer[i*BLOCK_SIZE])){ 
@@ -475,7 +489,7 @@ else {
 		indexCurrentBlock =FAT[indexCurrentBlock];
 
 	/** Find a empty Block and add in link : first-fit strategy */
-	for (uint32_t i=0 ;i< (count/BLOCK_SIZE-(FD[fd].fileSize-FD[fd].offset)/BLOCK_SIZE); i++ ){
+	for (uint32_t i=0 ;i< ((count+-FD[fd].offset)/BLOCK_SIZE-FD[fd].fileSize/BLOCK_SIZE); i++ ){
 		for (int j=0 ;j< FS_MAX_BLOCK; j++ ){
 			if (FAT[j]==0) {
 				FAT[indexCurrentBlock]= j;
@@ -486,7 +500,7 @@ else {
 	}
 	
 	
-	FD[fd].fileSize = FD[fd].fileSize - FD[fd].offset + count;
+	//FD[fd].fileSize = FD[fd].fileSize - FD[fd].offset + count;
 	indexCurrentBlock =FD[fd].indexFirstDataBlock;
 	/* read total file blocks into buffer  */ 
 	for (uint32_t i=0 ;i< (FD[fd].fileSize/BLOCK_SIZE+1); i++ )	{
@@ -501,6 +515,7 @@ else {
 	/** replace suitable part */	
 	memcpy (buffer + FD[fd].offset,buf,count);
 	
+	FD[fd].fileSize = FD[fd].offset + count; 
 	/** write back */
 	indexCurrentBlock =FD[fd].indexFirstDataBlock;
 	for (uint32_t i=0 ;i< (FD[fd].fileSize/BLOCK_SIZE+1); i++ )	{
