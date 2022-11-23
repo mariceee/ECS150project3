@@ -208,16 +208,47 @@ int fs_umount(void)
 	return 0;
 }
 
+/*
+1,8d0
+< FS Info:
+< total_blk_count=8198
+< fat_blk_count=4
+< rdir_blk=5
+< data_blk=6
+< data_blk_count=8192
+< fat_free_ratio=8191/8192
+< rdir_free_ratio=128/128
+*/
 
+/**
+ * fs_ls - List files on file system
+ *
+ * List information about the files located in the root directory.
+ *
+ * Return: -1 if no FS is currently mounted. 0 otherwise.
+ */
 
 int fs_info(void)
 {
-/** Once you’re able to mount a file system, implement the function fs_info() prints some information about the mounted file system 
-make sure that the output corresponds exactly to the reference program.
-按照 $ ./fs_ref.x info disk.fs > ref_output 格式打印
-*/ 
-// 打印全局变量 meta
-
+	if(mount==-1)return -1;
+	printf("1,8d0\n");
+	printf("<FS Info:\n");
+	printf("total_blk_count=%d\n", superblock.amountVD);
+	printf("fat_blk_count=%d\n", superblock.amountFAT);
+	printf("rdir_blk=%d\n", superblock.indexRootDirectory);
+	printf("data_blk=%d\n", superblock.indexDataBlock);
+	printf("data_blk_count=%d\n", superblock.amountDataBlock);
+	int free_blk=0;
+	for(int i=0;i<FS_MAX_BLOCK;i++){
+		if(FAT[i]==0)free_blk++;
+	}
+	printf("fat_free_ratio%d/%d\n", free_blk, FS_MAX_BLOCK);
+	int free_dir=0;
+	for(int i=0;i<FS_FILE_MAX_COUNT; i++){
+		if(directory[i].indexFirstDataBlock==0)free_dir++;
+	}
+	printf("rdir_free_ratio=%d/%d\n", free_dir, FS_FILE_MAX_COUNT);
+	
 	return 0;
 }
 
