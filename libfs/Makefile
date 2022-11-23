@@ -15,13 +15,13 @@ deps:=$(patsubst %.o, %.d, $(objs))
 -include $(deps)
 
 %.a: $(objs)
-	@ ar rcs $@ $^
+	@ar rcs $@ $^
 
 %.o: %.c
-	@ $(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	@ rm -rvf $(targets) $(objs) $(deps) *.d
+	@rm -rvf $(targets) $(objs) $(deps) *.d
 
 .PHONY: clean
 .PRECIOUS: $(objs)
