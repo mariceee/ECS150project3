@@ -1,14 +1,13 @@
 # Target library
 lib := libfs.a
 
-MAKEFLAGS+=-rR
 all: $(lib)
 
 ## TODO: Phase 1
 objs:= disk.o fs.o
 
 CC:= gcc
-
+AR :=ar
 CFLAGS := -Wall -Wextra -Werror -pipe -MMD
 
 ifneq ($(V), 1)
@@ -18,16 +17,16 @@ endif
 deps:=$(patsubst %.o, %.d, $(objs))
 -include $(deps)
 
-%.a: $(objs)
+$(lib): $(objs)
 	@echo "AR $@"
-	$(Q)ar rcs $@ $^
+	$(Q)$(AR) rcs $@ $^
 
 %.o: %.c
-	@echo "CC       $@"
+	@echo "CC $@"
 	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	@echo "CC       $@"
+	@echo "CC $@"
 	$(Q)rm -rvf $(targets) $(objs) $(deps) *.d
 
 .PHONY: clean
