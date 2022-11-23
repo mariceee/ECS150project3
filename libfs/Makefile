@@ -19,12 +19,15 @@ deps:=$(patsubst %.o, %.d, $(objs))
 -include $(deps)
 
 %.a: $(objs)
+	@echo "AR $@"
 	$(Q)ar rcs $@ $^
 
 %.o: %.c
+	@echo "CC       $@"
 	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
+	@echo "CC       $@"
 	$(Q)rm -rvf $(targets) $(objs) $(deps) *.d
 
 .PHONY: clean
