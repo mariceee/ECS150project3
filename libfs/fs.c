@@ -103,7 +103,7 @@ int fs_mount(const char *diskname)
 {
 
 	//  1 :  Open the virtual disk
-	printf("mount start\n");
+	//printf("mount start\n");
 	/*Return: -1 if no FS is currently mounted, or if the virtual disk cannot be closed, or if there are still open file descriptors.*/
 	if (block_disk_open(diskname)!=0){   
 			printf("Wrong disk name\n");
@@ -153,7 +153,7 @@ int fs_mount(const char *diskname)
 	}	
 
 	mount=0;
-	printf("Successfully mounted\n");
+	//printf("Successfully mounted\n");
 	return 0;
 }
 
@@ -250,8 +250,8 @@ int fs_info(void)
 		return -1;
 	}
 	*/
-	printf("1,8d0\n");
-	printf("<FS Info:\n");
+	//printf("1,8d0\n");
+	printf("FS Info:\n");
 	printf("total_blk_count=%d\n", superblock.amountVD);
 	printf("fat_blk_count=%d\n", superblock.amountFAT);
 	printf("rdir_blk=%d\n", superblock.indexRootDirectory);
