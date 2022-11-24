@@ -71,7 +71,7 @@ struct _directory {
 	char filename[FS_FILENAME_LEN];
 	uint32_t fileSize;
 	int16_t indexFirstDataBlock;
-	//int8_t padding [10];
+	int8_t padding [10];
 };
 
 struct _directory directory [FS_FILE_MAX_COUNT];
@@ -144,14 +144,14 @@ int fs_mount(const char *diskname)
 			return -1;
 			}	
 	}
-	//printf("fs_mount: %d\n", FAT[0]);
-
+	
 	//  2-3: Read  root directory
 	if (block_read(superblock.amountFAT+1, (void *)directory)){   // virtual disk file @diskname cannot be opened or if no valid * file system can be located. 
 		perror("fs_mount:read error\n");
 		return -1;
 	}	
-	//printf("fs_mount: %d\n", FAT[0]);
+	
+
 	mount=0;
 	//printf("Successfully mounted\n");
 	return 0;
@@ -263,7 +263,7 @@ int fs_info(void)
 		if(FAT[i]==0)j++;
 	}
 	//printf("fs_info: %d\n", FAT[0]);
-	printf("fat_free_ratio=%d/%d\n", j-1, superblock.amountDataBlock);
+	printf("fat_free_ratio=%d/%d\n", j, superblock.amountDataBlock);
 	int free_dir=0;
 	for(int i=0;i<FS_FILE_MAX_COUNT; i++){
 		if(directory[i].indexFirstDataBlock==0)free_dir++;
