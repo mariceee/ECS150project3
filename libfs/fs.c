@@ -87,26 +87,39 @@ struct fd FD[FS_OPEN_MAX_COUNT];
 
 int8_t mount=-1;
 
+/**
+ * fs_mount - Mount a file system
+ * @diskname: Name of the virtual disk file
+ *
+ * Open the virtual disk file @diskname and mount the file system that it
+ * contains. A file system needs to be mounted before files can be read from it
+ * with fs_read() or written to it with fs_write().
+ *
+ * Return: -1 if virtual disk file @diskname cannot be opened, or if no valid
+ * file system can be located. 0 otherwise.
+ */
+
 int fs_mount(const char *diskname)
 {
 
 	//  1 :  Open the virtual disk
-
+	printf("mount start\n");
 	/*Return: -1 if no FS is currently mounted, or if the virtual disk cannot be closed, or if there are still open file descriptors.*/
 	if (block_disk_open(diskname)!=0){   
+			printf("Wrong disk name\n");
 			fprintf(stderr, "fs_mount:virtual disk file %s cannot be opened \n", diskname);
 			return -1;
 		}
 
 	//  2-1: Read  superblock
 
-	if (block_read(0, &superblock)){   
+	if (block_read(0, &superblock)!=0){   
 			fprintf(stderr, "fs_mount:read superBlock error\n");
 			return -1;
 		}
 
 	//  error checking signature 
-	if (strcmp(superblock.signature,"ECS150FS")){
+	if (strncmp(superblock.signature,"ECS150FS", 8)){
 			fprintf(stderr, "fs_mount:signature error: \n" );
 			return -1;
 		}
@@ -140,6 +153,7 @@ int fs_mount(const char *diskname)
 	}	
 
 	mount=0;
+	printf("Successfully mounted\n");
 	return 0;
 }
 
