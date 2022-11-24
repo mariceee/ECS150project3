@@ -1,11 +1,11 @@
-mount start
-Successfully mounted
-1,8d0
-<FS Info:
+fs_mount: 65535
+fs_mount: 0
+FS Info:
 total_blk_count=4100
 fat_blk_count=2
 rdir_blk=3
 data_blk=4
 data_blk_count=4096
-fat_free_ratio8192/8192
+fs_info: 0
+fat_free_ratio=4096/4096
 rdir_free_ratio=128/128

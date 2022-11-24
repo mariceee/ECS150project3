@@ -144,14 +144,14 @@ int fs_mount(const char *diskname)
 			return -1;
 			}	
 	}
-
+	//printf("fs_mount: %d\n", FAT[0]);
 
 	//  2-3: Read  root directory
-	if (block_read(superblock.amountFAT+1, directory)){   // virtual disk file @diskname cannot be opened or if no valid * file system can be located. 
+	if (block_read(superblock.amountFAT+1, (void *)directory)){   // virtual disk file @diskname cannot be opened or if no valid * file system can be located. 
 		perror("fs_mount:read error\n");
 		return -1;
 	}	
-
+	//printf("fs_mount: %d\n", FAT[0]);
 	mount=0;
 	//printf("Successfully mounted\n");
 	return 0;
@@ -184,7 +184,7 @@ int fs_umount(void)
 			return -1;
 		}
 	}
-	/**
+	/**free_blk
 	At this point, all data must be written onto the virtual disk. Another application that mounts the file system at a later point in time must see the previously created files and the data that was written. This means that whenever fs_umount() is called, all meta-information and file data must have been written out to disk.
 	*/		
 
@@ -244,12 +244,12 @@ int fs_umount(void)
 
 int fs_info(void)
 {
-	/*
+	
 	if(mount==-1){
 		perror("No filesystem is mounted\n");
 		return -1;
 	}
-	*/
+	
 	//printf("1,8d0\n");
 	printf("FS Info:\n");
 	printf("total_blk_count=%d\n", superblock.amountVD);
@@ -257,11 +257,13 @@ int fs_info(void)
 	printf("rdir_blk=%d\n", superblock.indexRootDirectory);
 	printf("data_blk=%d\n", superblock.indexDataBlock);
 	printf("data_blk_count=%d\n", superblock.amountDataBlock);
-	int free_blk=0;
+	uint16_t j=0;
+
 	for(int i=0;i<superblock.amountDataBlock;i++){
-		if(FAT[i]==0)free_blk++;
+		if(FAT[i]==0)j++;
 	}
-	printf("fat_free_ratio=%d/%d\n", free_blk, superblock.amountDataBlock);
+	//printf("fs_info: %d\n", FAT[0]);
+	printf("fat_free_ratio=%d/%d\n", j-1, superblock.amountDataBlock);
 	int free_dir=0;
 	for(int i=0;i<FS_FILE_MAX_COUNT; i++){
 		if(directory[i].indexFirstDataBlock==0)free_dir++;

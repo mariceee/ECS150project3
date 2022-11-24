@@ -1,1 +1,8 @@
-FS Ls:
+FS Info:
+total_blk_count=4100
+fat_blk_count=2
+rdir_blk=3
+data_blk=4
+data_blk_count=4096
+fat_free_ratio=4095/4096
+rdir_free_ratio=128/128
