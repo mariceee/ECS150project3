@@ -258,10 +258,10 @@ int fs_info(void)
 	printf("data_blk=%d\n", superblock.indexDataBlock);
 	printf("data_blk_count=%d\n", superblock.amountDataBlock);
 	int free_blk=0;
-	for(int i=0;i<superblock.amountFAT;i++){
+	for(int i=0;i<superblock.amountDataBlock;i++){
 		if(FAT[i]==0)free_blk++;
 	}
-	printf("fat_free_ratio=%d/%d\n", free_blk, superblock.amountFAT);
+	printf("fat_free_ratio=%d/%d\n", free_blk, superblock.amountDataBlock);
 	int free_dir=0;
 	for(int i=0;i<FS_FILE_MAX_COUNT; i++){
 		if(directory[i].indexFirstDataBlock==0)free_dir++;
